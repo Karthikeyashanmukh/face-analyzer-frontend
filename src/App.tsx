@@ -18,7 +18,7 @@ const captureFrameFromVideo = (videoElement: HTMLVideoElement): string | null =>
 };
 
 const analyzeImage = async (base64Image: string) => {
-  const response = await fetch('http://localhost:5000/analyze', {
+  const response = await fetch('https://face-analyzer-backend-3.onrender.com', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

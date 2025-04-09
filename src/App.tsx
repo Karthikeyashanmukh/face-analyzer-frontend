@@ -7,6 +7,33 @@ type AnalysisResults = {
   concentration: number;
 } | null;
 
+const captureFrameFromVideo = (videoElement: HTMLVideoElement): string | null => {
+  const canvas = document.createElement('canvas');
+  canvas.width = videoElement.videoWidth;
+  canvas.height = videoElement.videoHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg').split(',')[1]; // Get only base64 part
+};
+
+const analyzeImage = async (base64Image: string) => {
+  const response = await fetch('http://localhost:5000/analyze', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ image: base64Image }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to analyze image');
+  }
+
+  return await response.json(); // Returns: { emotion, age, gender, race }
+};
+
+
 function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [results, setResults] = useState<AnalysisResults>(null);
@@ -42,13 +69,29 @@ function App() {
   };
 
   // Simulated analysis results - this would be replaced with actual API calls
-  const analyzeVideo = () => {
-    setResults({
-      laziness: Math.random(),
-      attentiveness: Math.random(),
-      concentration: Math.random()
-    });
+  const analyzeVideo = async () => {
+    if (!videoRef.current) return;
+  
+    const base64 = captureFrameFromVideo(videoRef.current);
+    if (!base64) {
+      console.error('Failed to capture frame');
+      return;
+    }
+  
+    try {
+      const res = await analyzeImage(base64);
+  
+      // Map backend results to frontend scores (you can customize this logic)
+      setResults({
+        laziness: res.emotion === 'neutral' ? 0.7 : 0.3,
+        attentiveness: ['happy', 'surprise'].includes(res.emotion) ? 0.8 : 0.4,
+        concentration: res.age < 30 ? 0.9 : 0.5,
+      });
+    } catch (err) {
+      console.error('Error analyzing image:', err);
+    }
   };
+  
 
   const ScoreBar = ({ label, value, icon: Icon }: { label: string; value: number; icon: React.ElementType }) => (
     <div className="mb-4">
